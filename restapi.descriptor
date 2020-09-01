@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns2:restapiDescriptor xmlns="http://com.ibm.etools.mft.descriptor.base" xmlns:ns2="http://com.ibm.etools.mft.descriptor.restapi" definitionType="swagger_20" definitionFile="swagger.json" implementation="gen/BestCommerce.msgflow" https="false">
+    <ns2:operations>
+        <ns2:operation name="getProductList" implementation="getProductList.subflow"/>
+        <ns2:operation name="postAddProduct" implementation="postAddProduct.subflow"/>
+        <ns2:operation name="postProductDiscounts" implementation="postProductDiscounts.subflow"/>
+        <ns2:operation name="postSetGeoRestriction" implementation="postSetGeoRestriction.subflow"/>
+        <ns2:operation name="postSignIn" implementation="postSignIn.subflow"/>
+        <ns2:operation name="postSignUp" implementation="postSignUp.subflow"/>
+    </ns2:operations>
+    <ns2:errorHandlers>
+        <ns2:errorHandler type="CATCH" implementation="BestCommerceInputCatchHandler.subflow"/>
+        <ns2:errorHandler type="FAILURE" implementation="BestCommerceInputFailureHandler.subflow"/>
+        <ns2:errorHandler type="TIMEOUT" implementation="BestCommerceInputTimeoutHandler.subflow"/>
+    </ns2:errorHandlers>
+</ns2:restapiDescriptor>

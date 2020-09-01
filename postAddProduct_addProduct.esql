@@ -1,0 +1,60 @@
+CREATE COMPUTE MODULE postAddProduct_addProduct
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE product_id CHARACTER;
+		DECLARE product_category CHARACTER InputRoot.JSON.Data.productCategory;
+		DECLARE product_name CHARACTER InputRoot.JSON.Data.name;
+		DECLARE product_description CHARACTER InputRoot.JSON.Data.description;
+		DECLARE product_price DECIMAL InputRoot.JSON.Data.unitPrice;
+		DECLARE product_inventory INTEGER InputRoot.JSON.Data.inventory;
+		DECLARE product_options CHARACTER InputRoot.JSON.Data.paymentOptions;
+		DECLARE product_delivery CHARACTER InputRoot.JSON.Data.delivery;
+		DECLARE product_country CHARACTER InputRoot.JSON.Data.country;
+		DECLARE product_owner_merchant CHARACTER CAST(Environment.Variables.merchantID AS INTEGER);
+		DECLARE i INTEGER 1;
+
+		IF product_country IS NULL OR product_country = '' THEN
+			SET product_country = 'all';
+		END IF;
+
+		IF product_category <> 'Electronics' OR product_category <> 'Fashion' OR product_category <> 'Food' THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.11';
+			SET OutputRoot.JSON.Data.errorCode = 'INVALID PRODUCT_CATEGORY';
+			SET i = i + 1;
+		END IF;
+		IF product_options <> 'Direct' OR product_options <> 'Installments' THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.11';
+			SET OutputRoot.JSON.Data.errorCode = 'INVALID PAYMENT OPTION';
+			SET i = i + 1;
+		END IF;
+
+		IF i = 1 THEN
+			DECLARE query CHARACTER;
+			DECLARE pk CHARACTER;
+			DECLARE rs ROW;
+			DECLARE count INTEGER 1;
+			SET pk = 'select * from iba_app.bc_products';
+
+			SET rs.root[] = PASSTHRU(pk);
+			SET count = CARDINALITY(rs.root[]);
+			IF count = 0 THEN
+				SET count = 1;
+			ELSE
+				SET count = count + 1;
+			END IF;
+			SET product_id = count;
+
+			SET query = 'INSERT INTO iba_app.bc_products (product_id, product_category,  product_name, product_desc, product_price, inventory, payment_options, delivery, owner_merchant_id, country)
+			VALUES (?,?,?,?,?,?,?,?,?,?)';
+
+			PASSTHRU(query,product_id, product_category, product_name,product_description, product_price, product_inventory,product_options, product_delivery, product_owner_merchant, product_country);
+
+			SET OutputRoot.JSON.Data.status = 'product added';
+			PROPAGATE;
+		ELSE
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode = 400;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		RETURN FALSE;
+	END;
+END MODULE;

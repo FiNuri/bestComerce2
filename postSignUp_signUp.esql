@@ -1,0 +1,61 @@
+
+
+CREATE COMPUTE MODULE postSignUp_signUp
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE MerchantType CHARACTER InputRoot.JSON.Data.MerchantType;
+		DECLARE MechantName CHARACTER InputRoot.JSON.Data.MerchantName;
+		DECLARE OwnerName CHARACTER InputRoot.JSON.Data.OwnerName;
+		DECLARE Address CHARACTER InputRoot.JSON.Data.Address;
+		DECLARE PhoneNumber CHARACTER InputRoot.JSON.Data.phoneNumber;
+		DECLARE EmailAdress CHARACTER InputRoot.JSON.Data.EmailAdress;
+		DECLARE Password CHARACTER InputRoot.JSON.Data.Password;
+		DECLARE i INTEGER 1;
+
+		DECLARE sqlQueryForCheck CHARACTER;
+		DECLARE sqlQUeryForSet CHARACTER;
+		DECLARE queryforPK CHARACTER;
+		DECLARE check ROW;
+		DECLARE flag BOOLEAN FALSE;
+		DECLARE ff ROW;
+		DECLARE idNum INTEGER;
+
+		IF LENGTH(Password) < 6 THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.9';
+			SET OutputRoot.JSON.Data.errorDesc = 'password less than 6 symbols';
+			SET i = i + 1;
+		END IF;
+
+		IF i = 1 THEN
+
+			SET queryforPK = 'select * from iba_app.bc_merchants';
+			SET sqlQueryForCheck = 'SELECT * from iba_app.bc_merchants t where t.merchant_name = ?';
+			SET sqlQUeryForSet = 'INSERT INTO iba_app.bc_merchants (merchant_id ,merchant_type, merchant_name, owner_name, merchant_address, phone_number, email_address, merchant_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+
+			SET check.root[] = PASSTHRU(sqlQueryForCheck, MechantName);
+			SET ff.root[] = PASSTHRU(queryforPK);
+			SET idNum = CARDINALITY(ff.root[]);
+			SET idNum = idNum + 1;
+
+			FOR merchant AS check.root[] DO
+				IF CARDINALITY(check.root[]) > 0 THEN
+					SET flag = TRUE;
+				END IF;
+			END FOR;
+
+			IF flag = TRUE THEN
+				SET OutputRoot.JSON.Data.errorCode = 'MSG-001';
+				SET OutputRoot.JSON.Data.errorDesc = 'Merchant already exist';
+				PROPAGATE TO TERMINAL 'out1';
+			ELSE
+				PASSTHRU(sqlQUeryForSet,idNum, MerchantType, MechantName, OwnerName, Address, PhoneNumber, EmailAdress, Password);
+				PROPAGATE;
+			END IF;
+		ELSE
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode = 400;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+
+		RETURN FALSE;
+	END;
+END MODULE;

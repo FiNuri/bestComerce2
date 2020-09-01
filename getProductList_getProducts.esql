@@ -1,0 +1,133 @@
+
+
+CREATE COMPUTE MODULE getProductList_getProducts
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE page INTEGER InputLocalEnvironment.REST.Input.Parameters.page;
+		DECLARE pageSize INTEGER InputLocalEnvironment.REST.Input.Parameters.pageSize;
+		DECLARE priceFilter CHARACTER InputLocalEnvironment.REST.Input.Parameters.price;
+		DECLARE inventoryFilter CHARACTER InputLocalEnvironment.REST.Input.Parameters.inventory;
+		DECLARE country CHARACTER InputLocalEnvironment.REST.Input.Parameters.country;
+		DECLARE i INTEGER 1;
+
+		IF page IS NULL AND pageSize IS NOT NULL THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.1';
+			SET OutputRoot.JSON.Data.errorCode = 'INVALID page';
+			SET i = i + 1;
+		END IF;
+		IF pageSize IS NULL AND page IS NOT NULL THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.2';
+			SET OutputRoot.JSON.Data.errorCode = 'INVALID pageSize';
+			SET i = i + 1;
+		END IF;
+		IF page IS NULL AND pageSize IS NULL THEN
+			SET page = 1;
+			SET pageSize = 50;
+		END IF;
+		IF country IS NULL OR country = '' THEN
+			SET country = 'all';
+		END IF;
+		IF priceFilter IS NOT NULL AND priceFilter <> '' AND inventoryFilter IS NOT NULL AND inventoryFilter <> '' THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.3';
+			SET OutputRoot.JSON.Data.errorCode = 'INVALID ORDER';
+			SET i = i + 1;  
+		END IF;
+
+		DECLARE sqlQueryForProducts CHARACTER;
+		DECLARE sqlQueryForProductsPriceFiltPriceMinToMax CHARACTER;
+		DECLARE sqlQueryForProductsPriceFiltPriceMaxToMin CHARACTER;
+		DECLARE sqlQueryForProductsPriceFiltInventoryMinToMax CHARACTER;
+		DECLARE sqlQueryForProductsPriceFiltInventoryMaxToMin CHARACTER;
+		DECLARE Query1 CHARACTER;
+
+		DECLARE product ROW;
+
+		SET sqlQueryForProducts = 'SELECT * FROM (SELECT row_number() OVER (ORDER BY res.product_id desc) AS row_num,
+		res.* FROM (SELECT * FROM iba_app.bc_products t WHERE t.inventory > 5 AND t.owner_merchant_id = ? AND t.country = ?) res )
+		WHERE row_num BETWEEN ? AND ?';
+
+		SET sqlQueryForProductsPriceFiltPriceMinToMax = 'SELECT * FROM (SELECT row_number() OVER (ORDER BY res.product_id desc) AS row_num,
+		res.* FROM (SELECT * FROM iba_app.bc_products t WHERE t.inventory > 5 AND t.owner_merchant_id = ? AND t.country = ? ) res ORDER BY res.product_price)
+		WHERE row_num BETWEEN ? AND ?';
+
+		SET sqlQueryForProductsPriceFiltPriceMaxToMin = 'SELECT * FROM (SELECT row_number() OVER (ORDER BY res.product_id desc) AS row_num,
+		res.* FROM (SELECT * FROM iba_app.bc_products t WHERE t.inventory > 5 AND t.owner_merchant_id = ? AND t.country = ? ) res  ORDER BY res.product_price DESC)
+		WHERE row_num BETWEEN ? AND ?';
+
+		SET sqlQueryForProductsPriceFiltInventoryMinToMax = 'SELECT * FROM (SELECT row_number() OVER (ORDER BY res.product_id desc) AS row_num,
+		res.* FROM (SELECT * FROM iba_app.bc_products t WHERE t.inventory > 5 AND t.owner_merchant_id = ? AND t.country = ? ) res ORDER BY res.inventory)
+		WHERE row_num BETWEEN ? AND ?';
+
+		SET sqlQueryForProductsPriceFiltInventoryMaxToMin = 'SELECT * FROM (SELECT row_number() OVER (ORDER BY res.product_id desc) AS row_num,
+		res.* FROM (SELECT * FROM iba_app.bc_products t WHERE t.inventory > 5 AND t.owner_merchant_id = ? AND t.country = ? ) res ORDER BY res.inventory DESC)
+		WHERE row_num BETWEEN ? AND ?';
+		
+		IF i = 1 THEN
+			IF priceFilter = 'minToMax' THEN
+				SET Query1 = sqlQueryForProductsPriceFiltPriceMinToMax;
+			ELSEIF priceFilter = 'maxToMin' THEN
+				SET Query1 = sqlQueryForProductsPriceFiltPriceMaxToMin;
+			ELSEIF inventoryFilter = 'minToMax' THEN
+				SET Query1 = sqlQueryForProductsPriceFiltInventoryMinToMax;
+			ELSEIF inventoryFilter = 'maxToMin' THEN
+				SET Query1 = sqlQueryForProductsPriceFiltInventoryMaxToMin;
+			ELSEIF priceFilter IS NULL AND inventoryFilter IS NULL THEN
+				SET Query1 = sqlQueryForProducts;
+			END IF;
+
+			DECLARE fromP INTEGER;
+			DECLARE toP INTEGER;
+			DECLARE j INTEGER 1;
+
+			DECLARE queryForDiscount CHARACTER;
+			DECLARE discountRs ROW;
+
+			SET queryForDiscount = 'SELECT * FROM iba_app.bc_discounts t WHERE t.product_id = ? AND t.discount_end_time > trunc(SYSDATE)';		
+		
+
+
+			SET fromP = (page - 1) * pageSize + 1;
+			SET toP = fromP + pageSize - 1;
+			
+			DECLARE merchantID CHARACTER;
+			SET merchantID  = CAST(Environment.Variables.merchantID AS INTEGER);
+
+			SET product.root[] = PASSTHRU(Query1, merchantID, country, fromP, toP);
+
+			CREATE FIELD OutputRoot.JSON.Data IDENTITY(JSON.Array) Data;
+
+			DECLARE price DECIMAL 0;
+			DECLARE finalPrice DECIMAL 0;
+			DECLARE procent DECIMAL 0;
+
+			FOR product AS product.root[] DO
+				SET discountRs.root[] = PASSTHRU(queryForDiscount, product.PRODUCT_ID);
+				
+				SET OutputRoot.JSON.Data.Item[j].productID VALUE = product.PRODUCT_ID;
+				SET OutputRoot.JSON.Data.Item[j].productCategory VALUE = product.PRODUCT_CATEGORY;
+				SET OutputRoot.JSON.Data.Item[j].name VALUE = product.PRODUCT_NAME;
+				SET OutputRoot.JSON.Data.Item[j].description VALUE = product.PRODUCT_DESC;
+				IF CARDINALITY(discountRs.root[]) > 0 THEN
+					SET finalPrice = product.PRODUCT_PRICE;
+					FOR discount AS discountRs.root[] DO
+						SET price = product.PRODUCT_PRICE;
+						SET procent = (price / 100) * discount.DISCOUNT_ID;
+						SET finalPrice = CAST((price - procent) AS DECIMAL);
+					END FOR;
+					SET OutputRoot.JSON.Data.Item[j].unitPrice = finalPrice;
+				ELSE
+					SET OutputRoot.JSON.Data.Item[j].unitPrice = CAST(product.PRODUCT_PRICE AS DECIMAL);
+				END IF;
+				SET OutputRoot.JSON.Data.Item[j].inventory VALUE = CAST(product.INVENTORY AS INTEGER);
+				SET OutputRoot.JSON.Data.Item[j].paymentOptions VALUE = product.PAYMENT_OPTIONS;
+				SET OutputRoot.JSON.Data.Item[j].delivery VALUE = product.DELIVERY;
+				SET j = j + 1;
+			END FOR;
+			PROPAGATE;
+		ELSE
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode = 400;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		RETURN FALSE;
+	END;
+END MODULE;

@@ -1,0 +1,51 @@
+
+CREATE COMPUTE MODULE postSignIn_signIn
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE merchantName CHARACTER InputRoot.JSON.Data.merchantName;
+		DECLARE password CHARACTER InputRoot.JSON.Data.password;
+		DECLARE SessionforWeek BOOLEAN  CAST(InputRoot.JSON.Data.SessionforWeek AS BOOLEAN);
+		
+		DECLARE startDate TIMESTAMP CURRENT_TIMESTAMP;
+		DECLARE endDate TIMESTAMP CURRENT_TIMESTAMP + INTERVAL '12' HOUR;
+		DECLARE endDate2 TIMESTAMP CURRENT_TIMESTAMP + INTERVAL '7' DAY;
+		
+		DECLARE querForChec CHARACTER;
+		DECLARE querForStart CHARACTER;
+		DECLARE sqlForPk CHARACTER;
+		DECLARE pknum INTEGER;
+		DECLARE ff ROW;
+		
+		DECLARE result ROW;
+		
+		SET querForChec = 'SELECT * FROM iba_app.bc_merchants t WHERE t.merchant_name = ? AND t.merchant_password = ?';
+		SET sqlForPk = 'select * from iba_app.bc_sessions';
+		SET querForStart = 'INSERT INTO iba_app.bc_sessions (session_id ,merchant_id, session_start_time, session_end_time) VALUES (?,?,?,?)';
+		
+		SET result.root[] = PASSTHRU(querForChec, merchantName, password);
+		
+		IF CARDINALITY(result.root[]) < 1 THEN
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-001.3';
+			SET OutputRoot.JSON.Data.errorCode = 'NAME OR PASSWORD ARE INCORRECT';
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode = 403;
+			PROPAGATE TO TERMINAL 'out1';
+		ELSE
+			DECLARE sessionID CHARACTER;
+			DECLARE merchantID INTEGER;
+			SET sessionID = UUIDASCHAR;
+			
+			SET merchantID = CAST(result.root[1].MERCHANT_ID AS INTEGER);
+			
+			IF SessionforWeek IS TRUE THEN
+				PASSTHRU(querForStart,sessionID, merchantID, startDate, endDate2);
+			ELSE
+				PASSTHRU(querForStart, sessionID, merchantID, startDate, endDate);
+			END IF;
+			
+			
+			
+			SET OutputRoot.JSON.Data.sessionID = sessionID;
+			PROPAGATE;
+		END IF;
+	END;
+END MODULE;

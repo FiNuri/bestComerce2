@@ -1,0 +1,18 @@
+
+
+CREATE COMPUTE MODULE postProductDiscounts_setDiscount
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE sqlForDiscount CHARACTER;
+		
+		SET sqlForDiscount = 'INSERT INTO iba_app.bc_discounts (discount_start_time, discount_end_time, discount_id, product_id) VALUES (?, ?, ?, ?)';
+		
+		DECLARE startDate TIMESTAMP CAST(InputRoot.JSON.Data.startDate AS TIMESTAMP);
+		DECLARE endDate TIMESTAMP CAST(InputRoot.JSON.Data.endDate AS TIMESTAMP);
+		DECLARE discount DECIMAL CAST(InputRoot.JSON.Data.discount AS DECIMAL);
+		DECLARE productID INTEGER CAST(InputRoot.JSON.Data.productID AS INTEGER);
+		
+		PASSTHRU(sqlForDiscount, startDate, endDate, discount, productID);
+		RETURN TRUE;
+	END;
+END MODULE;

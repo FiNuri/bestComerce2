@@ -1,0 +1,304 @@
+{
+  "swagger" : "2.0",
+  "info" : {
+    "title" : "BestCommerce",
+    "version" : "1.0.0",
+    "description" : "BestCommerce"
+  },
+  "paths" : {
+    "/signUp" : {
+      "post" : {
+        "operationId" : "postSignUp",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "type" : [ "string", "null" ]
+            }
+          },
+          "400" : {
+            "description" : "bad request",
+            "schema" : {
+              "$ref" : "#/definitions/error"
+            }
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a signUp",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/signUp"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        } ]
+      }
+    },
+    "/signIn" : {
+      "post" : {
+        "operationId" : "postSignIn",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful."
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a signIn",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/signIn"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        } ]
+      }
+    },
+    "/productList" : {
+      "get" : {
+        "operationId" : "getProductList",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful.",
+            "schema" : {
+              "type" : "array",
+              "items" : {
+                "$ref" : "#/definitions/product"
+              }
+            }
+          },
+          "400" : {
+            "description" : "bad request",
+            "schema" : {
+              "$ref" : "#/definitions/error"
+            }
+          }
+        },
+        "produces" : [ "application/json" ],
+        "description" : "Retrieve productList",
+        "parameters" : [ {
+          "name" : "price",
+          "in" : "query",
+          "type" : "string"
+        }, {
+          "name" : "inventory",
+          "in" : "query",
+          "type" : "string"
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "type" : "integer"
+        }, {
+          "name" : "pageSize",
+          "in" : "query",
+          "type" : "integer"
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string"
+        }, {
+          "name" : "country",
+          "in" : "query",
+          "type" : "string"
+        } ]
+      }
+    },
+    "/productDiscounts" : {
+      "post" : {
+        "operationId" : "postProductDiscounts",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful."
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a productDiscounts",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/discount"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string"
+        } ]
+      }
+    },
+    "/addProduct" : {
+      "post" : {
+        "operationId" : "postAddProduct",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful."
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a addProduct",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/product"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string"
+        } ]
+      }
+    },
+    "/setGeoRestriction" : {
+      "post" : {
+        "operationId" : "postSetGeoRestriction",
+        "responses" : {
+          "200" : {
+            "description" : "The operation was successful."
+          }
+        },
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "description" : "Insert a setGeoRestriction",
+        "parameters" : [ {
+          "name" : "body",
+          "in" : "body",
+          "schema" : {
+            "$ref" : "#/definitions/Restriction"
+          },
+          "description" : "The request body for the operation",
+          "required" : true
+        }, {
+          "name" : "sessionID",
+          "in" : "header",
+          "type" : "string"
+        } ]
+      }
+    }
+  },
+  "basePath" : "/bestcommerce/v1",
+  "definitions" : {
+    "signUp" : {
+      "type" : "object",
+      "properties" : {
+        "MerchantType" : {
+          "type" : "string"
+        },
+        "MerchantName" : {
+          "type" : "string"
+        },
+        "OwnerName" : {
+          "type" : "string"
+        },
+        "Address" : {
+          "type" : "string"
+        },
+        "phoneNumber" : {
+          "type" : "string"
+        },
+        "EmailAdress" : {
+          "type" : "string"
+        },
+        "Password" : {
+          "type" : "string"
+        }
+      }
+    },
+    "product" : {
+      "type" : "object",
+      "properties" : {
+        "productID" : {
+          "type" : "string"
+        },
+        "productCategory" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "description" : {
+          "type" : "string"
+        },
+        "unitPrice" : {
+          "type" : "number"
+        },
+        "inventory" : {
+          "type" : "integer"
+        },
+        "paymentOptions" : {
+          "type" : "string"
+        },
+        "delivery" : {
+          "type" : "string"
+        },
+        "country" : {
+          "type" : "string"
+        }
+      }
+    },
+    "error" : {
+      "type" : "object",
+      "properties" : {
+        "errorCode" : {
+          "type" : "string"
+        },
+        "errorDesc" : {
+          "type" : "string"
+        }
+      }
+    },
+    "discount" : {
+      "type" : "object",
+      "properties" : {
+        "startDate" : {
+          "type" : "string"
+        },
+        "endDate" : {
+          "type" : "string"
+        },
+        "discount" : {
+          "type" : "number"
+        },
+        "productID" : {
+          "type" : "string"
+        }
+      }
+    },
+    "signIn" : {
+      "type" : "object",
+      "properties" : {
+        "merchantName" : {
+          "type" : "string"
+        },
+        "password" : {
+          "type" : "string"
+        },
+        "SessionforWeek" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "Restriction" : {
+      "type" : "object",
+      "properties" : {
+        "productID" : {
+          "type" : "string"
+        },
+        "country" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}

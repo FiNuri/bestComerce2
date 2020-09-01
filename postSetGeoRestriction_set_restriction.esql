@@ -1,0 +1,18 @@
+CREATE COMPUTE MODULE postSetGeoRestriction_set_restriction
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE productID CHARACTER InputRoot.JSON.Data.productID;
+		DECLARE merchantID CHARACTER CAST(Environment.Variables.merchantID AS INTEGER);
+		DECLARE country CHARACTER InputRoot.JSON.Data.country;
+
+		DECLARE query CHARACTER;
+		SET query = 'update iba_app.bc_products p
+		set p.country = ?
+		where p.product_id = ? and p.owner_merchant_id = ?';
+		
+		PASSTHRU(query, country, productID, merchantID);
+
+		SET OutputRoot.JSON.Data.status = 'success';
+
+	END;
+END MODULE;

@@ -1,0 +1,27 @@
+
+
+CREATE COMPUTE MODULE sessionCheck_sessionCheck
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE sessionID CHARACTER InputLocalEnvironment.REST.Input.Parameters.sessionID;
+		
+		DECLARE query CHARACTER;
+		DECLARE result ROW;
+		
+		SET query = 'SELECT * FROM iba_app.bc_sessions t WHERE t.session_end_time > trunc(SYSDATE) and t.session_id = ?';
+		SET result.root[] = PASSTHRU(query, sessionID);
+		
+		IF CARDINALITY(result.root[]) > 0 THEN
+			SET OutputRoot = InputRoot;
+			SET OutputLocalEnvironment = InputLocalEnvironment;
+			SET Environment.Variables.merchantID = result.root[1].MERCHANT_ID;
+			PROPAGATE;
+		ELSE
+			SET OutputRoot.JSON.Data.errorCode = 'MSG-002';
+			SET OutputRoot.JSON.Data.errorDesc = 'please sign in';
+			SET OutputLocalEnvironment.Destination.HTTP.ReplyStatusCode = 403;
+			PROPAGATE TO TERMINAL 'out1';
+		END IF;
+		RETURN FALSE;
+	END;
+END MODULE;
